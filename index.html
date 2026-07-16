@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PT Chat</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --navy: #0a1622;
+    --panel: #10202f;
+    --panel-2: #16283a;
+    --gold: #e9c879;
+    --gold-dim: #9c8556;
+    --ink: #eae6da;
+    --ink-dim: #8fa1ab;
+    --err: #d97757;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0; height:100%;
+    background: var(--navy);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+    overflow:hidden;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1c3040;
+    background: var(--navy);
+    flex-shrink:0;
+  }
+
+  .mark{
+    width:38px; height:38px;
+    border-radius:8px;
+    background: linear-gradient(155deg, var(--panel-2), var(--navy));
+    border: 1px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    color: var(--gold);
+    font-size:15px;
+    position:relative;
+    overflow:hidden;
+  }
+  .mark::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(120deg, transparent 40%, rgba(233,200,121,0.35) 50%, transparent 60%);
+    animation: sheen 5s ease-in-out infinite;
+  }
+  @keyframes sheen{
+    0%, 100% { transform: translateX(-120%); }
+    50% { transform: translateX(120%); }
+  }
+
+  .titles{ line-height:1.25; }
+  .titles h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:15px;
+    margin:0;
+    letter-spacing:0.02em;
+  }
+  .titles p{
+    margin:0;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--ink-dim);
+    display:flex; align-items:center; gap:6px;
+  }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:#4caf6d;
+    box-shadow:0 0 6px #4caf6d;
+  }
+  .dot.off{ background:#666; box-shadow:none; }
+
+  .settings-btn{
+    margin-left:auto;
+    background:none; border:1px solid #1c3040;
+    color: var(--ink-dim);
+    border-radius:8px;
+    padding:7px 10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .settings-btn:active{ background: var(--panel); }
+
+  #settings{
+    display:none;
+    padding:14px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid #1c3040;
+    flex-shrink:0;
+  }
+  #settings.open{ display:block; }
+  #settings label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--gold);
+    display:block;
+    margin-bottom:6px;
+  }
+  #settings input, #settings select{
+    width:100%;
+    background: var(--navy);
+    border:1px solid #22384a;
+    color: var(--ink);
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:14px;
+    margin-bottom:10px;
+  }
+  #settings .hint{
+    font-size:11px;
+    color: var(--ink-dim);
+    margin:-4px 0 12px;
+    line-height:1.5;
+  }
+  #settings .hint a{ color: var(--gold); }
+  #settings button.save{
+    background: var(--gold);
+    color: var(--navy);
+    border:none;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  #chat{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .empty{
+    margin:auto;
+    text-align:center;
+    color: var(--ink-dim);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    max-width:260px;
+    line-height:1.6;
+  }
+
+  .msg{
+    max-width:82%;
+    padding:11px 14px;
+    border-radius:14px;
+    font-size:14.5px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
+  .msg.user{
+    align-self:flex-end;
+    background: var(--gold);
+    color: var(--navy);
+    border-bottom-right-radius:4px;
+    font-weight:500;
+  }
+  .msg.assistant{
+    align-self:flex-start;
+    background: var(--panel);
+    border: 1px solid #1c3040;
+    border-bottom-left-radius:4px;
+  }
+  .msg.error{
+    align-self:flex-start;
+    background: rgba(217,119,87,0.12);
+    border: 1px solid var(--err);
+    color: var(--err);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+  }
+
+  .typing{
+    align-self:flex-start;
+    display:flex;
+    gap:5px;
+    padding:14px;
+    background: var(--panel);
+    border: 1px solid #1c3040;
+    border-radius:14px;
+    border-bottom-left-radius:4px;
+  }
+  .typing span{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--gold);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2){ animation-delay:0.15s; }
+  .typing span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes bounce{
+    0%, 60%, 100% { opacity:0.3; transform:translateY(0); }
+    30% { opacity:1; transform:translateY(-4px); }
+  }
+
+  #inputbar{
+    display:flex;
+    gap:8px;
+    padding:12px;
+    border-top: 1px solid #1c3040;
+    background: var(--navy);
+    flex-shrink:0;
+  }
+  #inputbar textarea{
+    flex:1;
+    resize:none;
+    background: var(--panel);
+    border: 1px solid #22384a;
+    color: var(--ink);
+    padding:11px 14px;
+    border-radius:20px;
+    font-family:'Inter', sans-serif;
+    font-size:14.5px;
+    max-height:120px;
+    outline:none;
+  }
+  #inputbar textarea:focus{ border-color: var(--gold-dim); }
+  #inputbar button{
+    background: var(--gold);
+    color: var(--navy);
+    border:none;
+    width:44px; height:44px;
+    border-radius:50%;
+    font-size:18px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  #inputbar button:disabled{
+    background:#3a3a3a;
+    color:#777;
+  }
+  #inputbar button:active:not(:disabled){ transform: scale(0.94); }
+
+  @media (prefers-reduced-motion: reduce){
+    .mark::after, .typing span{ animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mark">PT</div>
+  <div class="titles">
+    <h1>PT CHAT</h1>
+    <p><span class="dot off" id="statusDot"></span><span id="statusText">no key set</span></p>
+  </div>
+  <button class="settings-btn" id="settingsToggle">SETUP</button>
+</header>
+
+<div id="settings">
+  <label>GROQ API KEY</label>
+  <input type="password" id="apiKey" placeholder="gsk_...">
+  <label>MODEL</label>
+  <select id="model">
+    <option value="llama-3.3-70b-versatile">Llama 3.3 70B (best quality)</option>
+    <option value="llama-3.1-8b-instant">Llama 3.1 8B (fastest)</option>
+  </select>
+  <p class="hint">Get a free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. It's saved only in this browser — never uploaded anywhere.</p>
+  <button class="save" id="saveSettings">Save</button>
+</div>
+
+<div id="chat">
+  <div class="empty" id="emptyState">Set your Groq API key in SETUP, then start typing below.</div>
+</div>
+
+<div id="inputbar">
+  <textarea id="userInput" rows="1" placeholder="Message PT Chat..."></textarea>
+  <button id="sendBtn">➤</button>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const settingsPanel = document.getElementById('settings');
+const settingsToggle = document.getElementById('settingsToggle');
+const apiKeyInput = document.getElementById('apiKey');
+const modelSelect = document.getElementById('model');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const emptyState = document.getElementById('emptyState');
+
+let history = [];
+
+const savedKey = localStorage.getItem('pt_groq_key');
+const savedModel = localStorage.getItem('pt_groq_model');
+if (savedKey) apiKeyInput.value = savedKey;
+if (savedModel) modelSelect.value = savedModel;
+updateStatus();
+
+function updateStatus(){
+  const key = localStorage.getItem('pt_groq_key');
+  if (key){
+    statusDot.classList.remove('off');
+    statusText.textContent = 'ready';
+  } else {
+    statusDot.classList.add('off');
+    statusText.textContent = 'no key set';
+  }
+}
+
+settingsToggle.addEventListener('click', () => {
+  settingsPanel.classList.toggle('open');
+});
+
+document.getElementById('saveSettings').addEventListener('click', () => {
+  const key = apiKeyInput.value.trim();
+  if (!key){ alert('Paste your Groq API key first.'); return; }
+  localStorage.setItem('pt_groq_key', key);
+  localStorage.setItem('pt_groq_model', modelSelect.value);
+  updateStatus();
+  settingsPanel.classList.remove('open');
+});
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+function addMessage(role, text){
+  emptyState.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return div;
+}
+
+function addTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function removeTyping(){
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+async function sendMessage(){
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  const key = localStorage.getItem('pt_groq_key');
+  if (!key){
+    alert('Add your Groq API key in SETUP first.');
+    settingsPanel.classList.add('open');
+    return;
+  }
+
+  addMessage('user', text);
+  history.push({ role: 'user', content: text });
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+  addTyping();
+
+  try {
+    const model = localStorage.getItem('pt_groq_model') || 'llama-3.3-70b-versatile';
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: history,
+        temperature: 0.7
+      })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (!res.ok){
+      const msg = data.error?.message || 'Request failed (' + res.status + ')';
+      addMessage('error', msg);
+      return;
+    }
+
+    const reply = data.choices?.[0]?.message?.content || '(empty response)';
+    addMessage('assistant', reply);
+    history.push({ role: 'assistant', content: reply });
+
+  } catch (err){
+    removeTyping();
+    addMessage('error', 'Network error: ' + err.message);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
