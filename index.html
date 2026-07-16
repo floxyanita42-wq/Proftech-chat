@@ -35,6 +35,7 @@
     overflow:hidden;
   }
 
+  /* HEADER */
   header{
     display:flex;
     align-items:center;
@@ -102,6 +103,7 @@
   }
   .settings-btn:active{ background: var(--panel); }
 
+  /* SETTINGS PANEL */
   #settings{
     display:none;
     padding:14px 16px;
@@ -145,6 +147,7 @@
     cursor:pointer;
   }
 
+  /* MESSAGES */
   #chat{
     flex:1;
     overflow-y:auto;
@@ -217,6 +220,49 @@
     30% { opacity:1; transform:translateY(-4px); }
   }
 
+  /* IMAGE PREVIEW */
+  #imagePreviewBar{
+    display:none;
+    padding:10px 12px 0;
+    background: var(--navy);
+    flex-shrink:0;
+  }
+  #imagePreviewBar.open{ display:flex; }
+  .preview-thumb{
+    position:relative;
+    width:64px; height:64px;
+    border-radius:10px;
+    overflow:hidden;
+    border: 1px solid var(--gold-dim);
+  }
+  .preview-thumb img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .preview-thumb .remove{
+    position:absolute;
+    top:2px; right:2px;
+    width:18px; height:18px;
+    background: rgba(10,22,34,0.85);
+    color: var(--gold);
+    border:none;
+    border-radius:50%;
+    font-size:11px;
+    line-height:18px;
+    text-align:center;
+    cursor:pointer;
+    padding:0;
+  }
+
+  .msg img.attached{
+    display:block;
+    max-width:100%;
+    border-radius:10px;
+    margin-bottom:8px;
+  }
+
+  /* INPUT BAR */
   #inputbar{
     display:flex;
     gap:8px;
@@ -224,7 +270,19 @@
     border-top: 1px solid #1c3040;
     background: var(--navy);
     flex-shrink:0;
+    align-items:flex-end;
   }
+  #inputbar .attach-btn{
+    background:none;
+    border:1px solid #22384a;
+    color: var(--gold);
+    width:44px; height:44px;
+    border-radius:50%;
+    font-size:18px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  #inputbar .attach-btn:active{ background: var(--panel); }
   #inputbar textarea{
     flex:1;
     resize:none;
@@ -279,6 +337,7 @@
     <option value="llama-3.3-70b-versatile">Llama 3.3 70B (best quality)</option>
     <option value="llama-3.1-8b-instant">Llama 3.1 8B (fastest)</option>
   </select>
+  <p class="hint">Attaching a photo automatically switches that message to a vision-capable model (meta-llama/llama-4-scout-17b-16e-instruct), then switches back for text-only chats.</p>
   <p class="hint">Get a free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. It's saved only in this browser — never uploaded anywhere.</p>
   <button class="save" id="saveSettings">Save</button>
 </div>
@@ -287,7 +346,16 @@
   <div class="empty" id="emptyState">Set your Groq API key in SETUP, then start typing below.</div>
 </div>
 
+<div id="imagePreviewBar">
+  <div class="preview-thumb">
+    <img id="previewImg" src="" alt="attached">
+    <button class="remove" id="removeImageBtn">✕</button>
+  </div>
+</div>
+
 <div id="inputbar">
+  <input type="file" id="fileInput" accept="image/*" style="display:none;">
+  <button class="attach-btn" id="attachBtn" title="Attach image">📷</button>
   <textarea id="userInput" rows="1" placeholder="Message PT Chat..."></textarea>
   <button id="sendBtn">➤</button>
 </div>
@@ -303,9 +371,17 @@ const modelSelect = document.getElementById('model');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const emptyState = document.getElementById('emptyState');
+const attachBtn = document.getElementById('attachBtn');
+const fileInput = document.getElementById('fileInput');
+const imagePreviewBar = document.getElementById('imagePreviewBar');
+const previewImg = document.getElementById('previewImg');
+const removeImageBtn = document.getElementById('removeImageBtn');
 
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 let history = [];
+let attachedImage = null; // holds base64 data URL
 
+// Load saved settings
 const savedKey = localStorage.getItem('pt_groq_key');
 const savedModel = localStorage.getItem('pt_groq_model');
 if (savedKey) apiKeyInput.value = savedKey;
@@ -350,11 +426,44 @@ inputEl.addEventListener('keydown', (e) => {
 
 sendBtn.addEventListener('click', sendMessage);
 
-function addMessage(role, text){
+attachBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024){
+    alert('Please choose an image under 4MB.');
+    fileInput.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    attachedImage = reader.result;
+    previewImg.src = attachedImage;
+    imagePreviewBar.classList.add('open');
+  };
+  reader.readAsDataURL(file);
+});
+
+removeImageBtn.addEventListener('click', () => {
+  attachedImage = null;
+  fileInput.value = '';
+  imagePreviewBar.classList.remove('open');
+});
+
+function addMessage(role, text, imageUrl){
   emptyState.style.display = 'none';
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.textContent = text;
+  if (imageUrl){
+    const img = document.createElement('img');
+    img.className = 'attached';
+    img.src = imageUrl;
+    div.appendChild(img);
+  }
+  const textNode = document.createElement('span');
+  textNode.textContent = text;
+  div.appendChild(textNode);
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   return div;
@@ -376,7 +485,8 @@ function removeTyping(){
 
 async function sendMessage(){
   const text = inputEl.value.trim();
-  if (!text) return;
+  const imageUrl = attachedImage;
+  if (!text && !imageUrl) return;
 
   const key = localStorage.getItem('pt_groq_key');
   if (!key){
@@ -385,15 +495,35 @@ async function sendMessage(){
     return;
   }
 
-  addMessage('user', text);
-  history.push({ role: 'user', content: text });
+  addMessage('user', text, imageUrl);
+
+  // Build the message sent to the API. If an image is attached, use the
+  // multimodal content array format; otherwise plain text.
+  let apiMessage;
+  if (imageUrl){
+    apiMessage = {
+      role: 'user',
+      content: [
+        { type: 'text', text: text || 'Describe this image.' },
+        { type: 'image_url', image_url: { url: imageUrl } }
+      ]
+    };
+  } else {
+    apiMessage = { role: 'user', content: text };
+  }
+  history.push(apiMessage);
+
   inputEl.value = '';
   inputEl.style.height = 'auto';
+  attachedImage = null;
+  fileInput.value = '';
+  imagePreviewBar.classList.remove('open');
   sendBtn.disabled = true;
   addTyping();
 
   try {
-    const model = localStorage.getItem('pt_groq_model') || 'llama-3.3-70b-versatile';
+    const chosenModel = localStorage.getItem('pt_groq_model') || 'llama-3.3-70b-versatile';
+    const model = imageUrl ? VISION_MODEL : chosenModel;
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
