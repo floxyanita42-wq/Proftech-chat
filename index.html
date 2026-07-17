@@ -35,16 +35,27 @@
     overflow:hidden;
   }
 
-  /* HEADER */
   header{
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:10px;
     padding: 14px 16px;
     border-bottom: 1px solid #1c3040;
     background: var(--navy);
     flex-shrink:0;
   }
+
+  .icon-btn{
+    background:none;
+    border:1px solid #1c3040;
+    color: var(--ink-dim);
+    width:36px; height:36px;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .icon-btn:active{ background: var(--panel); }
 
   .mark{
     width:38px; height:38px;
@@ -58,6 +69,7 @@
     font-size:15px;
     position:relative;
     overflow:hidden;
+    flex-shrink:0;
   }
   .mark::after{
     content:"";
@@ -70,12 +82,15 @@
     50% { transform: translateX(120%); }
   }
 
-  .titles{ line-height:1.25; }
+  .titles{ line-height:1.25; overflow:hidden; }
   .titles h1{
     font-family:'Space Grotesk', sans-serif;
-    font-size:15px;
+    font-size:14px;
     margin:0;
     letter-spacing:0.02em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
   .titles p{
     margin:0;
@@ -88,6 +103,7 @@
     width:6px; height:6px; border-radius:50%;
     background:#4caf6d;
     box-shadow:0 0 6px #4caf6d;
+    flex-shrink:0;
   }
   .dot.off{ background:#666; box-shadow:none; }
 
@@ -100,10 +116,93 @@
     font-family:'JetBrains Mono', monospace;
     font-size:11px;
     cursor:pointer;
+    flex-shrink:0;
   }
   .settings-btn:active{ background: var(--panel); }
 
-  /* SETTINGS PANEL */
+  #sidebarOverlay{
+    display:none;
+    position:fixed; inset:0;
+    background: rgba(0,0,0,0.55);
+    z-index:40;
+  }
+  #sidebarOverlay.open{ display:block; }
+
+  #sidebar{
+    position:fixed;
+    top:0; left:0; bottom:0;
+    width:82%;
+    max-width:320px;
+    background: var(--panel);
+    border-right: 1px solid #1c3040;
+    z-index:41;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    display:flex;
+    flex-direction:column;
+  }
+  #sidebar.open{ transform: translateX(0); }
+
+  #sidebar .sidebar-header{
+    padding:16px;
+    border-bottom:1px solid #1c3040;
+    flex-shrink:0;
+  }
+  #newChatBtn{
+    width:100%;
+    background: var(--gold);
+    color: var(--navy);
+    border:none;
+    font-weight:600;
+    padding:11px;
+    border-radius:10px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  #newChatBtn:active{ opacity:0.85; }
+
+  #conversationList{
+    flex:1;
+    overflow-y:auto;
+    padding:8px;
+  }
+  .conv-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:11px 10px;
+    border-radius:8px;
+    margin-bottom:2px;
+    cursor:pointer;
+    font-size:13.5px;
+  }
+  .conv-item.active{ background: var(--panel-2); }
+  .conv-item:active{ background: var(--panel-2); }
+  .conv-title{
+    flex:1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color: var(--ink);
+  }
+  .conv-delete{
+    background:none;
+    border:none;
+    color: var(--ink-dim);
+    font-size:14px;
+    cursor:pointer;
+    padding:4px 6px;
+    flex-shrink:0;
+  }
+  .conv-delete:active{ color: var(--err); }
+  .conv-empty{
+    color: var(--ink-dim);
+    font-size:12px;
+    font-family:'JetBrains Mono', monospace;
+    padding:14px 10px;
+    text-align:center;
+  }
+
   #settings{
     display:none;
     padding:14px 16px;
@@ -147,7 +246,6 @@
     cursor:pointer;
   }
 
-  /* MESSAGES */
   #chat{
     flex:1;
     overflow-y:auto;
@@ -168,7 +266,7 @@
   }
 
   .msg{
-    max-width:82%;
+    max-width:86%;
     padding:11px 14px;
     border-radius:14px;
     font-size:14.5px;
@@ -198,6 +296,48 @@
     font-size:12.5px;
   }
 
+  .code-block{
+    background: #081019;
+    border: 1px solid #22384a;
+    border-radius:10px;
+    margin:8px 0;
+    overflow:hidden;
+    white-space:normal;
+  }
+  .code-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 10px;
+    background: #0d1c29;
+    border-bottom:1px solid #22384a;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--ink-dim);
+  }
+  .copy-btn{
+    background: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    padding:3px 9px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .copy-btn:active{ background: rgba(233,200,121,0.15); }
+  .code-block pre{
+    margin:0;
+    padding:12px;
+    overflow-x:auto;
+  }
+  .code-block code{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color: var(--ink);
+    white-space:pre;
+  }
+
   .typing{
     align-self:flex-start;
     display:flex;
@@ -220,7 +360,6 @@
     30% { opacity:1; transform:translateY(-4px); }
   }
 
-  /* IMAGE PREVIEW */
   #imagePreviewBar{
     display:none;
     padding:10px 12px 0;
@@ -262,7 +401,6 @@
     margin-bottom:8px;
   }
 
-  /* INPUT BAR */
   #inputbar{
     display:flex;
     gap:8px;
@@ -297,7 +435,7 @@
     outline:none;
   }
   #inputbar textarea:focus{ border-color: var(--gold-dim); }
-  #inputbar button{
+  #inputbar button.send{
     background: var(--gold);
     color: var(--navy);
     border:none;
@@ -307,11 +445,11 @@
     flex-shrink:0;
     cursor:pointer;
   }
-  #inputbar button:disabled{
+  #inputbar button.send:disabled{
     background:#3a3a3a;
     color:#777;
   }
-  #inputbar button:active:not(:disabled){ transform: scale(0.94); }
+  #inputbar button.send:active:not(:disabled){ transform: scale(0.94); }
 
   @media (prefers-reduced-motion: reduce){
     .mark::after, .typing span{ animation: none !important; }
@@ -320,10 +458,19 @@
 </head>
 <body>
 
+<div id="sidebarOverlay"></div>
+<div id="sidebar">
+  <div class="sidebar-header">
+    <button id="newChatBtn">+ New Chat</button>
+  </div>
+  <div id="conversationList"></div>
+</div>
+
 <header>
+  <button class="icon-btn" id="sidebarToggle">☰</button>
   <div class="mark">PT</div>
   <div class="titles">
-    <h1>PT CHAT</h1>
+    <h1 id="convTitle">PT CHAT</h1>
     <p><span class="dot off" id="statusDot"></span><span id="statusText">no key set</span></p>
   </div>
   <button class="settings-btn" id="settingsToggle">SETUP</button>
@@ -357,7 +504,7 @@
   <input type="file" id="fileInput" accept="image/*" style="display:none;">
   <button class="attach-btn" id="attachBtn" title="Attach image">📷</button>
   <textarea id="userInput" rows="1" placeholder="Message PT Chat..."></textarea>
-  <button id="sendBtn">➤</button>
+  <button class="send" id="sendBtn">➤</button>
 </div>
 
 <script>
@@ -376,82 +523,152 @@ const fileInput = document.getElementById('fileInput');
 const imagePreviewBar = document.getElementById('imagePreviewBar');
 const previewImg = document.getElementById('previewImg');
 const removeImageBtn = document.getElementById('removeImageBtn');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const newChatBtn = document.getElementById('newChatBtn');
+const conversationList = document.getElementById('conversationList');
+const convTitle = document.getElementById('convTitle');
 
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-let history = [];
-let attachedImage = null; // holds base64 data URL
+const CONV_KEY = 'pt_conversations';
+const ACTIVE_KEY = 'pt_active_conversation';
+const SYSTEM_PROMPT = "You are PT Chat, a coding mentor helping a self-taught mobile developer who codes on a phone using HTML, CSS, JavaScript, and some React. Always give complete, ready-to-paste code (not partial snippets) unless asked to explain only. Briefly explain WHY a fix or approach works, not just what to paste. If a request is ambiguous, make a reasonable assumption and say so, rather than only asking questions. Keep explanations concise and practical, suited for someone learning on the job.";
 
-// Load saved settings
-const savedKey = localStorage.getItem('pt_groq_key');
-const savedModel = localStorage.getItem('pt_groq_model');
-if (savedKey) apiKeyInput.value = savedKey;
-if (savedModel) modelSelect.value = savedModel;
-updateStatus();
+let conversations = [];
+let activeId = null;
+let attachedImage = null;
 
-function updateStatus(){
-  const key = localStorage.getItem('pt_groq_key');
-  if (key){
-    statusDot.classList.remove('off');
-    statusText.textContent = 'ready';
-  } else {
-    statusDot.classList.add('off');
-    statusText.textContent = 'no key set';
+function loadConversations(){
+  try {
+    const raw = localStorage.getItem(CONV_KEY);
+    conversations = raw ? JSON.parse(raw) : [];
+  } catch (e){
+    conversations = [];
   }
 }
 
-settingsToggle.addEventListener('click', () => {
-  settingsPanel.classList.toggle('open');
-});
-
-document.getElementById('saveSettings').addEventListener('click', () => {
-  const key = apiKeyInput.value.trim();
-  if (!key){ alert('Paste your Groq API key first.'); return; }
-  localStorage.setItem('pt_groq_key', key);
-  localStorage.setItem('pt_groq_model', modelSelect.value);
-  updateStatus();
-  settingsPanel.classList.remove('open');
-});
-
-inputEl.addEventListener('input', () => {
-  inputEl.style.height = 'auto';
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
-});
-
-inputEl.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey){
-    e.preventDefault();
-    sendMessage();
+function saveConversations(){
+  try {
+    localStorage.setItem(CONV_KEY, JSON.stringify(conversations));
+  } catch (e){
+    console.error('Could not save conversations', e);
   }
-});
+}
 
-sendBtn.addEventListener('click', sendMessage);
+function getActiveConversation(){
+  return conversations.find(c => c.id === activeId) || null;
+}
 
-attachBtn.addEventListener('click', () => fileInput.click());
+function createConversation(){
+  const conv = {
+    id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    title: 'New chat',
+    messages: [],
+    updatedAt: Date.now()
+  };
+  conversations.unshift(conv);
+  activeId = conv.id;
+  localStorage.setItem(ACTIVE_KEY, activeId);
+  saveConversations();
+  return conv;
+}
 
-fileInput.addEventListener('change', () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  if (file.size > 4 * 1024 * 1024){
-    alert('Please choose an image under 4MB.');
-    fileInput.value = '';
+function deleteConversation(id){
+  conversations = conversations.filter(c => c.id !== id);
+  saveConversations();
+  if (activeId === id){
+    if (conversations.length){
+      activeId = conversations[0].id;
+    } else {
+      createConversation();
+    }
+    localStorage.setItem(ACTIVE_KEY, activeId);
+  }
+  renderConversationList();
+  renderActiveConversation();
+}
+
+function switchConversation(id){
+  activeId = id;
+  localStorage.setItem(ACTIVE_KEY, activeId);
+  renderConversationList();
+  renderActiveConversation();
+  closeSidebar();
+}
+
+function titleFromText(text){
+  if (!text) return 'Image chat';
+  const trimmed = text.trim().replace(/\s+/g, ' ');
+  return trimmed.length > 42 ? trimmed.slice(0, 42) + '...' : trimmed;
+}
+
+function renderConversationList(){
+  conversationList.innerHTML = '';
+  if (!conversations.length){
+    const empty = document.createElement('div');
+    empty.className = 'conv-empty';
+    empty.textContent = 'No conversations yet.';
+    conversationList.appendChild(empty);
     return;
   }
-  const reader = new FileReader();
-  reader.onload = () => {
-    attachedImage = reader.result;
-    previewImg.src = attachedImage;
-    imagePreviewBar.classList.add('open');
-  };
-  reader.readAsDataURL(file);
-});
+  conversations
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .forEach(conv => {
+      const item = document.createElement('div');
+      item.className = 'conv-item' + (conv.id === activeId ? ' active' : '');
 
-removeImageBtn.addEventListener('click', () => {
-  attachedImage = null;
-  fileInput.value = '';
-  imagePreviewBar.classList.remove('open');
-});
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'conv-title';
+      titleSpan.textContent = conv.title;
+      titleSpan.addEventListener('click', () => switchConversation(conv.id));
 
-function addMessage(role, text, imageUrl){
+      const delBtn = document.createElement('button');
+      delBtn.className = 'conv-delete';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Delete this conversation? This cannot be undone.')){
+          deleteConversation(conv.id);
+        }
+      });
+
+      item.appendChild(titleSpan);
+      item.appendChild(delBtn);
+      conversationList.appendChild(item);
+    });
+}
+
+function escapeHtml(str){
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderContent(text){
+  const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let html = '';
+  let match;
+  while ((match = codeBlockRegex.exec(text)) !== null){
+    html += escapeHtml(text.slice(lastIndex, match.index));
+    const lang = match[1] || 'code';
+    const code = match[2];
+    const codeId = 'code_' + Math.random().toString(36).slice(2, 9);
+    html += '<div class="code-block">'
+      + '<div class="code-header"><span>' + escapeHtml(lang) + '</span>'
+      + '<button class="copy-btn" data-target="' + codeId + '">Copy</button></div>'
+      + '<pre><code id="' + codeId + '">' + escapeHtml(code) + '</code></pre>'
+      + '</div>';
+    lastIndex = codeBlockRegex.lastIndex;
+  }
+  html += escapeHtml(text.slice(lastIndex));
+  return html;
+}
+
+function addMessageEl(role, text, imageUrl){
   emptyState.style.display = 'none';
   const div = document.createElement('div');
   div.className = 'msg ' + role;
@@ -461,12 +678,33 @@ function addMessage(role, text, imageUrl){
     img.src = imageUrl;
     div.appendChild(img);
   }
-  const textNode = document.createElement('span');
-  textNode.textContent = text;
-  div.appendChild(textNode);
+  const textWrap = document.createElement('span');
+  textWrap.innerHTML = renderContent(text || '');
+  div.appendChild(textWrap);
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   return div;
+}
+
+function renderActiveConversation(){
+  chatEl.innerHTML = '';
+  chatEl.appendChild(emptyState);
+  const conv = getActiveConversation();
+  convTitle.textContent = conv && conv.title !== 'New chat' ? conv.title : 'PT CHAT';
+  if (!conv || !conv.messages.length){
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+  conv.messages.forEach(msg => {
+    if (Array.isArray(msg.content)){
+      const textPart = msg.content.find(p => p.type === 'text');
+      const imgPart = msg.content.find(p => p.type === 'image_url');
+      addMessageEl(msg.role, textPart ? textPart.text : '', imgPart ? imgPart.image_url.url : null);
+    } else {
+      addMessageEl(msg.role, msg.content);
+    }
+  });
 }
 
 function addTyping(){
@@ -483,81 +721,25 @@ function removeTyping(){
   if (el) el.remove();
 }
 
-async function sendMessage(){
-  const text = inputEl.value.trim();
-  const imageUrl = attachedImage;
-  if (!text && !imageUrl) return;
-
-  const key = localStorage.getItem('pt_groq_key');
-  if (!key){
-    alert('Add your Groq API key in SETUP first.');
-    settingsPanel.classList.add('open');
-    return;
-  }
-
-  addMessage('user', text, imageUrl);
-
-  // Build the message sent to the API. If an image is attached, use the
-  // multimodal content array format; otherwise plain text.
-  let apiMessage;
-  if (imageUrl){
-    apiMessage = {
-      role: 'user',
-      content: [
-        { type: 'text', text: text || 'Describe this image.' },
-        { type: 'image_url', image_url: { url: imageUrl } }
-      ]
-    };
-  } else {
-    apiMessage = { role: 'user', content: text };
-  }
-  history.push(apiMessage);
-
-  inputEl.value = '';
-  inputEl.style.height = 'auto';
-  attachedImage = null;
-  fileInput.value = '';
-  imagePreviewBar.classList.remove('open');
-  sendBtn.disabled = true;
-  addTyping();
-
-  try {
-    const chosenModel = localStorage.getItem('pt_groq_model') || 'llama-3.3-70b-versatile';
-    const model = imageUrl ? VISION_MODEL : chosenModel;
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + key
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: history,
-        temperature: 0.7
-      })
-    });
-
-    const data = await res.json();
-    removeTyping();
-
-    if (!res.ok){
-      const msg = data.error?.message || 'Request failed (' + res.status + ')';
-      addMessage('error', msg);
-      return;
-    }
-
-    const reply = data.choices?.[0]?.message?.content || '(empty response)';
-    addMessage('assistant', reply);
-    history.push({ role: 'assistant', content: reply });
-
-  } catch (err){
-    removeTyping();
-    addMessage('error', 'Network error: ' + err.message);
-  } finally {
-    sendBtn.disabled = false;
-  }
+function openSidebar(){
+  sidebar.classList.add('open');
+  sidebarOverlay.classList.add('open');
 }
-</script>
+function closeSidebar(){
+  sidebar.classList.remove('open');
+  sidebarOverlay.classList.remove('open');
+}
+sidebarToggle.addEventListener('click', openSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+newChatBtn.addEventListener('click', () => {
+  createConversation();
+  renderConversationList();
+  renderActiveConversation();
+  closeSidebar();
+});
 
-</body>
-</html>
+chatEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const codeEl = document.getElementById(btn.getAttribute('data-target'));
+  if (!
