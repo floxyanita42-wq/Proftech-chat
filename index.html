@@ -218,7 +218,7 @@
     display:block;
     margin-bottom:6px;
   }
-  #settings input, #settings select{
+  #settings input{
     width:100%;
     background: var(--navy);
     border:1px solid #22384a;
@@ -365,6 +365,8 @@
     padding:10px 12px 0;
     background: var(--navy);
     flex-shrink:0;
+    gap:8px;
+    flex-wrap:wrap;
   }
   #imagePreviewBar.open{ display:flex; }
   .preview-thumb{
@@ -467,7 +469,7 @@
 </div>
 
 <header>
-  <button class="icon-btn" id="sidebarToggle">☰</button>
+  <button class="icon-btn" id="sidebarToggle">&#9776;</button>
   <div class="mark">PT</div>
   <div class="titles">
     <h1 id="convTitle">PT CHAT</h1>
@@ -477,36 +479,26 @@
 </header>
 
 <div id="settings">
-  <label>GROQ API KEY</label>
-  <input type="password" id="apiKey" placeholder="gsk_...">
+  <label>GEMINI API KEY</label>
+  <input type="password" id="apiKey" placeholder="AIza...">
   <label>MODEL</label>
-  <select id="model">
-    <option value="llama-3.3-70b-versatile">Llama 3.3 70B (best quality)</option>
-    <option value="llama-3.1-8b-instant">Llama 3.1 8B (fastest)</option>
-  </select>
-  <p class="hint">Attaching a photo automatically switches that message to a vision-capable model (meta-llama/llama-4-scout-17b-16e-instruct), then switches back for text-only chats.</p>
-  <p class="hint">Get a free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. It's saved only in this browser — never uploaded anywhere.</p>
+  <input type="text" id="modelInput" placeholder="gemini-2.0-flash">
+  <p class="hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. One model handles both text and photos, so there's nothing extra to configure for images. If a model name ever stops working, check the model list at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> and paste the current name here. Your key is saved only in this browser — never uploaded anywhere.</p>
   <button class="save" id="saveSettings">Save</button>
 </div>
 
 <div id="chat">
-  <div class="empty" id="emptyState">Set your Groq API key in SETUP, then start typing below.</div>
+  <div class="empty" id="emptyState">Set your Gemini API key in SETUP, then start typing below.</div>
 </div>
 
-<div id="imagePreviewBar">
-  <div class="preview-thumb">
-    <img id="previewImg" src="" alt="attached">
-    <button class="remove" id="removeImageBtn">✕</button>
-  </div>
-</div>
+<div id="imagePreviewBar"></div>
 
 <div id="inputbar">
-  <input type="file" id="fileInput" accept="image/*" style="display:none;">
-  <button class="attach-btn" id="attachBtn" title="Attach image">📷</button>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+  <button class="attach-btn" id="attachBtn" title="Attach image(s)">&#128247;</button>
   <textarea id="userInput" rows="1" placeholder="Message PT Chat..."></textarea>
-  <button class="send" id="sendBtn">➤</button>
+  <button class="send" id="sendBtn">&#10148;</button>
 </div>
-
 <script>
 const chatEl = document.getElementById('chat');
 const inputEl = document.getElementById('userInput');
@@ -514,15 +506,13 @@ const sendBtn = document.getElementById('sendBtn');
 const settingsPanel = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 const apiKeyInput = document.getElementById('apiKey');
-const modelSelect = document.getElementById('model');
+const modelInput = document.getElementById('modelInput');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const emptyState = document.getElementById('emptyState');
 const attachBtn = document.getElementById('attachBtn');
 const fileInput = document.getElementById('fileInput');
 const imagePreviewBar = document.getElementById('imagePreviewBar');
-const previewImg = document.getElementById('previewImg');
-const removeImageBtn = document.getElementById('removeImageBtn');
 const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -530,14 +520,20 @@ const newChatBtn = document.getElementById('newChatBtn');
 const conversationList = document.getElementById('conversationList');
 const convTitle = document.getElementById('convTitle');
 
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
-const CONV_KEY = 'pt_conversations';
-const ACTIVE_KEY = 'pt_active_conversation';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
+const CONV_KEY = 'pt_conversations_gemini';
+const ACTIVE_KEY = 'pt_active_conversation_gemini';
 const SYSTEM_PROMPT = "You are PT Chat, a coding mentor helping a self-taught mobile developer who codes on a phone using HTML, CSS, JavaScript, and some React. Always give complete, ready-to-paste code (not partial snippets) unless asked to explain only. Briefly explain WHY a fix or approach works, not just what to paste. If a request is ambiguous, make a reasonable assumption and say so, rather than only asking questions. Keep explanations concise and practical, suited for someone learning on the job.";
 
 let conversations = [];
 let activeId = null;
-let attachedImage = null;
+let attachedImages = []; // array of base64 data URLs
+
+function getModel(){
+  return (localStorage.getItem('pt_gemini_model') || '').trim() || DEFAULT_MODEL;
+}
+
+/* ---------- Persistence: conversations ---------- */
 
 function loadConversations(){
   try {
@@ -603,6 +599,8 @@ function titleFromText(text){
   return trimmed.length > 42 ? trimmed.slice(0, 42) + '...' : trimmed;
 }
 
+/* ---------- Rendering ---------- */
+
 function renderConversationList(){
   conversationList.innerHTML = '';
   if (!conversations.length){
@@ -626,7 +624,7 @@ function renderConversationList(){
 
       const delBtn = document.createElement('button');
       delBtn.className = 'conv-delete';
-      delBtn.textContent = '✕';
+      delBtn.textContent = '\u2715';
       delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm('Delete this conversation? This cannot be undone.')){
@@ -668,15 +666,17 @@ function renderContent(text){
   return html;
 }
 
-function addMessageEl(role, text, imageUrl){
+function addMessageEl(role, text, imageUrls){
   emptyState.style.display = 'none';
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  if (imageUrl){
-    const img = document.createElement('img');
-    img.className = 'attached';
-    img.src = imageUrl;
-    div.appendChild(img);
+  if (imageUrls && imageUrls.length){
+    imageUrls.forEach(url => {
+      const img = document.createElement('img');
+      img.className = 'attached';
+      img.src = url;
+      div.appendChild(img);
+    });
   }
   const textWrap = document.createElement('span');
   textWrap.innerHTML = renderContent(text || '');
@@ -699,8 +699,9 @@ function renderActiveConversation(){
   conv.messages.forEach(msg => {
     if (Array.isArray(msg.content)){
       const textPart = msg.content.find(p => p.type === 'text');
-      const imgPart = msg.content.find(p => p.type === 'image_url');
-      addMessageEl(msg.role, textPart ? textPart.text : '', imgPart ? imgPart.image_url.url : null);
+      const imgParts = msg.content.filter(p => p.type === 'image_url');
+      const urls = imgParts.map(p => p.image_url.url);
+      addMessageEl(msg.role, textPart ? textPart.text : '', urls);
     } else {
       addMessageEl(msg.role, msg.content);
     }
@@ -721,6 +722,8 @@ function removeTyping(){
   if (el) el.remove();
 }
 
+/* ---------- Sidebar ---------- */
+
 function openSidebar(){
   sidebar.classList.add('open');
   sidebarOverlay.classList.add('open');
@@ -738,8 +741,256 @@ newChatBtn.addEventListener('click', () => {
   closeSidebar();
 });
 
+/* ---------- Copy button (event delegation) ---------- */
+
 chatEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.copy-btn');
   if (!btn) return;
   const codeEl = document.getElementById(btn.getAttribute('data-target'));
-  if (!
+  if (!codeEl) return;
+  const text = codeEl.textContent;
+  const done = () => {
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+});
+
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e){}
+  document.body.removeChild(ta);
+  if (cb) cb();
+}
+
+/* ---------- Settings ---------- */
+
+const savedKey = localStorage.getItem('pt_gemini_key');
+const savedModel = localStorage.getItem('pt_gemini_model');
+if (savedKey) apiKeyInput.value = savedKey;
+modelInput.value = savedModel || DEFAULT_MODEL;
+updateStatus();
+
+function updateStatus(){
+  const key = localStorage.getItem('pt_gemini_key');
+  if (key){
+    statusDot.classList.remove('off');
+    statusText.textContent = 'ready';
+  } else {
+    statusDot.classList.add('off');
+    statusText.textContent = 'no key set';
+  }
+}
+
+settingsToggle.addEventListener('click', () => {
+  settingsPanel.classList.toggle('open');
+});
+
+document.getElementById('saveSettings').addEventListener('click', () => {
+  const key = apiKeyInput.value.trim();
+  if (!key){ alert('Paste your Gemini API key first.'); return; }
+  localStorage.setItem('pt_gemini_key', key);
+  localStorage.setItem('pt_gemini_model', modelInput.value.trim() || DEFAULT_MODEL);
+  updateStatus();
+  settingsPanel.classList.remove('open');
+});
+
+/* ---------- Input handling ---------- */
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+attachBtn.addEventListener('click', () => fileInput.click());
+
+function renderImagePreviewBar(){
+  imagePreviewBar.innerHTML = '';
+  if (!attachedImages.length){
+    imagePreviewBar.classList.remove('open');
+    return;
+  }
+  imagePreviewBar.classList.add('open');
+  attachedImages.forEach((url, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'preview-thumb';
+    const img = document.createElement('img');
+    img.src = url;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove';
+    removeBtn.textContent = '\u2715';
+    removeBtn.addEventListener('click', () => {
+      attachedImages.splice(idx, 1);
+      renderImagePreviewBar();
+    });
+    thumb.appendChild(img);
+    thumb.appendChild(removeBtn);
+    imagePreviewBar.appendChild(thumb);
+  });
+}
+
+fileInput.addEventListener('change', () => {
+  const files = Array.from(fileInput.files || []);
+  if (!files.length) return;
+  files.forEach(file => {
+    if (file.size > 4 * 1024 * 1024){
+      alert('Skipped "' + file.name + '" - please choose images under 4MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      attachedImages.push(reader.result);
+      renderImagePreviewBar();
+    };
+    reader.readAsDataURL(file);
+  });
+  fileInput.value = '';
+});
+
+/* ---------- Gemini request formatting ---------- */
+
+// Converts our internal message shape into Gemini's "contents" format.
+// Gemini uses role "model" instead of "assistant", and inline images are
+// sent as { inlineData: { mimeType, data } } with the base64 prefix stripped.
+function toGeminiContents(messages){
+  return messages.map(m => {
+    const role = m.role === 'assistant' ? 'model' : 'user';
+    if (Array.isArray(m.content)){
+      const parts = m.content.map(p => {
+        if (p.type === 'text') return { text: p.text };
+        if (p.type === 'image_url'){
+          const url = p.image_url.url;
+          const match = url.match(/^data:(.*?);base64,(.*)$/);
+          if (match){
+            return { inlineData: { mimeType: match[1], data: match[2] } };
+          }
+          return { text: '[image]' };
+        }
+        return { text: '' };
+      });
+      return { role, parts };
+    }
+    return { role, parts: [{ text: m.content }] };
+  });
+}
+
+/* ---------- Sending messages ---------- */
+
+async function sendMessage(){
+  const text = inputEl.value.trim();
+  const imageUrls = attachedImages.slice();
+  if (!text && !imageUrls.length) return;
+
+  const key = localStorage.getItem('pt_gemini_key');
+  if (!key){
+    alert('Add your Gemini API key in SETUP first.');
+    settingsPanel.classList.add('open');
+    return;
+  }
+
+  let conv = getActiveConversation();
+  if (!conv) conv = createConversation();
+
+  addMessageEl('user', text, imageUrls);
+
+  let apiMessage;
+  if (imageUrls.length){
+    apiMessage = {
+      role: 'user',
+      content: [
+        { type: 'text', text: text || 'Describe this image.' },
+        ...imageUrls.map(url => ({ type: 'image_url', image_url: { url } }))
+      ]
+    };
+  } else {
+    apiMessage = { role: 'user', content: text };
+  }
+
+  conv.messages.push(apiMessage);
+  if (conv.title === 'New chat'){
+    conv.title = titleFromText(text);
+  }
+  conv.updatedAt = Date.now();
+  saveConversations();
+  renderConversationList();
+  convTitle.textContent = conv.title;
+
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  attachedImages = [];
+  renderImagePreviewBar();
+  sendBtn.disabled = true;
+  addTyping();
+
+  try {
+    const model = getModel();
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: toGeminiContents(conv.messages)
+      })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (!res.ok){
+      const msg = (data.error && data.error.message) || 'Request failed (' + res.status + ')';
+      addMessageEl('error', msg);
+      return;
+    }
+
+    const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+    const reply = parts ? parts.map(p => p.text || '').join('') : '(empty response)';
+    addMessageEl('assistant', reply || '(empty response)');
+    conv.messages.push({ role: 'assistant', content: reply || '(empty response)' });
+    conv.updatedAt = Date.now();
+    saveConversations();
+    renderConversationList();
+
+  } catch (err){
+    removeTyping();
+    addMessageEl('error', 'Network error: ' + err.message);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+/* ---------- Boot ---------- */
+
+loadConversations();
+const savedActive = localStorage.getItem(ACTIVE_KEY);
+if (savedActive && conversations.some(c => c.id === savedActive)){
+  activeId = savedActive;
+} else if (conversations.length){
+  activeId = conversations[0].id;
+} else {
+  createConversation();
+}
+renderConversationList();
+renderActiveConversation();
+</script>
+
+</body>
+</html>
